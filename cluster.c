@@ -376,12 +376,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     for (int i = 0; i < n_obj; i++)
     {
-        struct obj_t new_obj;
-        if (fscanf(in, "%i%*[ ]%f%*[ ]%f%*[ ]\n", &(new_obj.id), &(new_obj.x), &(new_obj.y)) != 3)
-        { // TODO: posefit chybne radky
-            printf("chybny radek\n");
-            fscanf(in, "%*[^\n]\n");
-            // n_obj = i;
+        struct obj_t new_obj = {0, 0, 0};
+        if (fscanf(in, "%i%*[^\n0-9]%f%*[^\n0-9]%f%*[^\n]", &(new_obj.id), &(new_obj.x), &(new_obj.y)) != 3)
+        {
             n_obj -= 1;
             i -= 1;
             continue;
@@ -416,6 +413,6 @@ int main(int argc, char *argv[])
     }
     struct cluster_t *clusters;
 
-    int narr = load_clusters("input.txt", &clusters);
+    int narr = load_clusters("input2.txt", &clusters);
     print_clusters(clusters, narr);
 }
