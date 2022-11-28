@@ -92,19 +92,24 @@ void init_cluster(struct cluster_t *c, int cap)
     assert(c != NULL);
     assert(cap >= 0);
 
-    c->size = cap;
+    c->size = 0;       // nastavim velikost na nulu
+    c->capacity = cap; // natavim kapacitu shluku na pozadovanou kapacitu
 
+    // pokud je pozadovana kapacita nula, nastavim pole objektu na NULL a ukoncim funkci
     if (cap == 0)
     {
         c->obj = NULL;
         return;
     }
 
+    // alokuju pole objektu na pozadovanou kapacitu
     c->obj = malloc(cap * sizeof(struct obj_t));
 
+    // pokud se alokace nepovedla nastavim kapacitu na nulu a ukoncim funkci
     if (c->obj == NULL)
     {
-        c->size = 0;
+        fprintf(stderr, "Chyba alokace pole objektu.\n");
+        c->capacity = 0;
         return;
     }
 }
@@ -114,9 +119,10 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-    free(c->obj);
+    free(c->obj);  // uvolnim pole objektu shluku
+    c->obj = NULL; // pro jistotu jej nastavim na NULL
 
-    init_cluster(c, 0);
+    init_cluster(c, 0); // inicializuju pole objektu na prazdne (NULL)
 }
 
 /// Chunk of cluster objects. Value recommended for reallocation.
@@ -152,18 +158,20 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
  */
 void append_cluster(struct cluster_t *c, struct obj_t obj)
 {
+    // pokud se objekt nevleze do shluku, rozsirim ho o CLUSTER_CHUNK
     if (c->size + 1 > c->capacity)
     {
+        // pokud se rozsireni nepovedlo, vypisu chybu, vycistim shluk a ukoncim funkci
         if (resize_cluster(c, c->size + CLUSTER_CHUNK) == NULL)
         {
+            fprintf(stderr, "Chyba realokace shluku.\n");
             clear_cluster(c);
             return;
         }
     }
 
-    c->obj[c->size] = obj;
-    c->capacity += CLUSTER_CHUNK;
-    c->size += 1;
+    c->obj[c->size] = obj; // pridam objekt do shluku
+    c->size += 1;          // zvetsim velikost shluku
 }
 
 /*
@@ -181,23 +189,32 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     assert(c1 != NULL);
     assert(c2 != NULL);
 
+    // pokud se objekty shluku c1 nevlezou do shluku c2, rozsirim ho
     if ((c1->size + c2->size) > c1->capacity)
     {
-        // calculate the new number of chunks
-        int newChunks = (c1->size + c2->size) / c1->capacity + ((c1->size + c2->size) % c1->capacity == 0 ? 0 : 1);
+        // vypocitam, kolik chunku je treba pro pokryti objektu z obou shluku
+        int newChunks = (c1->size + c2->size) / c1->capacity;
+        if ((c1->size + c2->size) % c1->capacity != 0)
+        {
+            newChunks += 1;
+        }
 
+        // pokud se rosireni nepovedlo, vypisu chybu, vycistim shluk c1 a funkci ukoncim
         if (resize_cluster(c1, newChunks * CLUSTER_CHUNK) == NULL)
         {
             fprintf(stderr, "Chyba realokace.\n");
+            clear_cluster(c1);
             return;
         }
     }
 
+    // jdu po objektech shluku c2 a pridavam je do shluku c1
     for (int i = 0; i < c2->size; i++)
     {
         append_cluster(c1, c2->obj[i]);
     }
 
+    // seradim objekty ve shluku c1
     sort_cluster(c1);
 }
 
@@ -214,16 +231,20 @@ int remove_cluster(struct cluster_t *carr, int narr, int idx)
     assert(idx < narr);
     assert(narr > 0);
 
+    // otestuji, zda je zadani index v mezich pole, pokud ne vypisu chybu a funkci ukoncim
     if (idx < 0 || idx >= narr)
     {
         fprintf(stderr, "Index mimo hranice pole.\n");
         return narr;
     }
 
-    for (int i = idx; i < narr - 1; i++)
+    // postupne posouvam shluky v poli za mazanym, cimz ho mazu
+    for (int i = idx + 1; i < narr; i++)
     {
-        carr[i] = carr[i + 1];
+        carr[i - 1] = carr[i];
     }
+
+    // vratim novy pocet prvku
     return narr - 1;
 }
 
@@ -235,6 +256,7 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     assert(o1 != NULL);
     assert(o2 != NULL);
 
+    // vypocet vzdalenosti pomoci pythagorovy vety
     return sqrt(pow(o1->x - o2->x, 2) + pow(o1->y - o2->y, 2));
 }
 
@@ -248,8 +270,10 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
     assert(c2 != NULL);
     assert(c2->size > 0);
 
+    // nastavim minimalni vzdalenost na prvni objekty ve shlucich
     float min_dist = obj_distance(&(c1->obj[0]), &(c2->obj[0]));
 
+    // hledam dva prvky, ktere maji mensi vzdalenost, nez ty jiz nalezene
     for (int i = 0; i < c1->size; i++)
     {
         for (int j = 0; j < c2->size; j++)
@@ -257,11 +281,12 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
             float dist = obj_distance(&(c1->obj[i]), &(c2->obj[j]));
             if (dist < min_dist)
             {
-                min_dist = dist;
+                min_dist = dist; // pokud jsem nasel mesi vzdalenost, ulozim si ji
             }
         }
     }
 
+    // vratim nejmensi nalezenou vzdalenost objektu shluku c1 a c2
     return min_dist;
 }
 
@@ -275,14 +300,18 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
 {
     assert(narr > 0);
 
+    // nesmim porovnavat shluk sam se sebou (ten je si samozrejme nejbliz), proto prvotni minimum bude prvni a druhy shluk
     (*c1) = 0;
-    (*c2) = 0;
-    float min_dist = cluster_distance(&(carr[(*c1)]), &(carr[(*c2)]));
+    (*c2) = 1;
+    float min_dist = cluster_distance(&(carr[(*c1)]), &(carr[(*c2)])); // ukladam si i nejmensi nalezenou vzdalenost, abych si ji nemusel porad pocitat
 
+    // hledam mensi vzdalenost dvou shluku
     for (int i = 0; i < narr; i++)
     {
-        for (int j = i; j < narr; j++)
+        // vzdy hledam ve zbytku pole shluku, abych neporovnaval shluk sam se sebou a navic je vzdalenost shluku komutativni, tudiz se zbavim zbytecnych vypoctu
+        for (int j = i + 1; j < narr; j++)
         {
+            // pokud jsem nalezl shluku s mensi vzdalenosti, nez jiz nalezenou, ulozim si ji a ktere to byly
             if (cluster_distance(&(carr[i]), &(carr[j])) < min_dist)
             {
                 (*c1) = i;
@@ -341,54 +370,65 @@ int load_clusters(char *filename, struct cluster_t **arr)
 {
     assert(arr != NULL);
 
+    // otevreni zadaneho souboru
     FILE *in = fopen(filename, "r");
     if (in == NULL)
     {
+        // pokud se otevreni nepovedlo, vypisu chybu a funkci ukoncim
         fprintf(stderr, "Chyba pri otevirani souboru '%s'.\n", filename);
-        (*arr) = NULL;
-        return 0;
+        (*arr) = NULL; // nastavim pole shluku na NULL
+        return 0;      // vratim 0 jako pocet shluku v poli
     }
 
+    // zjistim si pocet objektu v souboru z prvniho radku
     int n_obj = 0;
     if (fscanf(in, "count=%i", &n_obj) != 1)
     {
+        // pokud se pocet objektu nedal precist, soubor bude nema pozadovany format, nebo je prazdny, takze ukoncim funkci
         fprintf(stderr, "Soubor '%s' je prazdny.\n", filename);
-        fclose(in);
-        (*arr) = NULL;
-        return 0;
+        fclose(in);    // zavru soubor
+        (*arr) = NULL; // nastavim pole shluku na NULL
+        return 0;      // vratim 0 jako pocet shluku v poli
     }
 
+    // pokud je pocet shluku v souboru 0, ukoncim funkci
     if (n_obj == 0)
     {
-        fclose(in);
-        (*arr) = NULL;
-        return 0;
+        fclose(in);    // zavru soubor
+        (*arr) = NULL; // nastavim pole shluku na NULL
+        return 0;      // vratim 0 jako pocet shluku v poli
     }
 
-    (*arr) = malloc(sizeof(struct cluster_t) * n_obj);
+    (*arr) = malloc(sizeof(struct cluster_t) * n_obj); // alokace pameti pro shluky pro objekty
 
+    // pokud se alokace nepovedla, vypisu chybu a ukoncim funkci
     if ((*arr) == NULL)
     {
         fprintf(stderr, "Pri alokaci pameti doslo k chybe.\n");
-        fclose(in);
-        return 0;
+        fclose(in); // zavru soubor
+        return 0;   // vratim 0 jako pocet shluku v poli
     }
 
+    // pro dany pocet objektu nacitam data ze souboru
     for (int i = 0; i < n_obj; i++)
     {
-        struct obj_t new_obj = {0, 0, 0};
-        if (fscanf(in, "%i%*[^\n0-9]%f%*[^\n0-9]%f%*[^\n]", &(new_obj.id), &(new_obj.x), &(new_obj.y)) != 3)
+        struct obj_t new_obj = {0, 0, 0}; // vytvorim si novy objekt pro vkladani do shluku
+        // nacitam data ze souboru, davam pri tom pozor, abych nazacal cist calsi radek a pokud je na radku vic hodnot, zahodim je
+        if (fscanf(in, "%i%*[^\n0-9]%f%*[^\n0-9]%f%*[^\n]\n", &(new_obj.id), &(new_obj.x), &(new_obj.y)) != 3)
         {
+            // pokud je radek vadny, zmensim pocet nacitanych objektu a posunu iterator dolu, abych nemel v poli prazdne misto
             n_obj -= 1;
             i -= 1;
             continue;
         }
+        // Note: Funkce funguje i v pripade, ze bude objektu v souboru mene, nez je psano. Pocet objektu se bude zmensovat, dokud nebude odpovidat skutecnemu poctu objektu v souboru.
 
-        init_cluster(&((*arr)[i]), 0);
-        append_cluster(&((*arr)[i]), new_obj);
+        init_cluster(&((*arr)[i]), 0);         // inicializace shluku pro objekt
+        append_cluster(&((*arr)[i]), new_obj); // vlozeni objektu do vytvoreneho shluku v poli shluku
     }
 
-    return n_obj;
+    fclose(in);   // uzavreni souboru
+    return n_obj; // vratim pocet skutecne nactenych objektu
 }
 
 /*
@@ -407,12 +447,46 @@ void print_clusters(struct cluster_t *carr, int narr)
 
 int main(int argc, char *argv[])
 {
-
-    if (argc > 0 && argv[0])
+    // testuju, jestli program odstal dostatek argumentu
+    if (argc < 2)
     {
+        // v pripade, ze ne, vypisu usage a ukoncim program
+        fprintf(stderr, "Usage: %s SOUBOR [N]\n", argv[0]);
+        return EXIT_FAILURE;
     }
+
+    int cilovy_pocet_shluku = 1; // v zakladu je cilovy pocet shluku 1
+    if (argc >= 3)
+    {
+        // nactu cilovy pocet shluku z argumentu volani programu
+        cilovy_pocet_shluku = strtol(argv[2], NULL, 10);
+    }
+
+    // vytvorim si pole (ukazatel) shluku
     struct cluster_t *clusters;
 
-    int narr = load_clusters("input2.txt", &clusters);
-    print_clusters(clusters, narr);
+    // do pole shluku nactu shluky ze souboru
+    int narr = load_clusters(argv[1], &clusters);
+
+    // otestuji zadanou hodnotu ciloveho poctu shluku
+    if (cilovy_pocet_shluku <= 0 || cilovy_pocet_shluku > narr)
+    {
+        // kdyz je zadana hodnota bud mensi, jak nula, nebo vetsi, nez maximalni pocet shluku, vypisu chybu, usage a program ukoncim
+        fprintf(stderr, "Hodnota [N]='%i' neni validni.\n", cilovy_pocet_shluku);
+        fprintf(stderr, "Usage: %s SOUBOR [N]\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    // provadim slucovani nejblizsich shluku, dokud je jejich pocet vetsi, jak pozadovany pocet shluku
+    while (narr > cilovy_pocet_shluku)
+    {
+        int c1, c2;
+        find_neighbours(clusters, narr, &c1, &c2);        // najdu shluky, ktere jsou si nejbliz
+        merge_clusters(&(clusters[c1]), &(clusters[c2])); // nalezene shluky sloucim
+
+        narr = remove_cluster(clusters, narr, c2); // ostranim shluk, ktery jsem sloucil do jineho
+    }
+
+    print_clusters(clusters, narr); // tisk vysledku
+    return EXIT_SUCCESS;            // :) kdyz vse probehlo vporadku, koncim pratricne program
 }
