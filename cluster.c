@@ -1,4 +1,9 @@
 /**
+ * @author Tomáš Hobza, xhobza03
+ * @date 26. 11. 2022
+ */
+
+/**
  * Kostra programu pro 2. projekt IZP 2022/23
  *
  * Jednoducha shlukova analyza: 2D nejblizsi soused.
@@ -92,10 +97,15 @@ void init_cluster(struct cluster_t *c, int cap)
     if (cap == 0)
     {
         c->obj = NULL;
+        return;
     }
-    else
+
+    c->obj = malloc(cap * sizeof(struct obj_t));
+
+    if (c->obj == NULL)
     {
-        c->obj = malloc(cap * sizeof(struct obj_t));
+        c->size = 0;
+        return;
     }
 }
 
@@ -144,7 +154,7 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
 {
     if (c->size + 1 > c->capacity)
     {
-        if (resize_cluster(c, c->size + 1) == NULL)
+        if (resize_cluster(c, c->size + CLUSTER_CHUNK) == NULL)
         {
             clear_cluster(c);
             return;
@@ -152,6 +162,7 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
     }
 
     c->obj[c->size] = obj;
+    c->capacity += CLUSTER_CHUNK;
     c->size += 1;
 }
 
@@ -170,7 +181,24 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     assert(c1 != NULL);
     assert(c2 != NULL);
 
-    // TODO
+    if ((c1->size + c2->size) > c1->capacity)
+    {
+        // calculate the new number of chunks
+        int newChunks = (c1->size + c2->size) / c1->capacity + ((c1->size + c2->size) % c1->capacity == 0 ? 0 : 1);
+
+        if (resize_cluster(c1, newChunks * CLUSTER_CHUNK) == NULL)
+        {
+            fprintf(stderr, "Chyba realokace.\n");
+            return;
+        }
+    }
+
+    for (int i = 0; i < c2->size; i++)
+    {
+        append_cluster(c1, c2->obj[i]);
+    }
+
+    sort_cluster(c1);
 }
 
 /**********************************************************************/
@@ -186,7 +214,17 @@ int remove_cluster(struct cluster_t *carr, int narr, int idx)
     assert(idx < narr);
     assert(narr > 0);
 
-    // TODO
+    if (idx < 0 || idx >= narr)
+    {
+        fprintf(stderr, "Index mimo hranice pole.\n");
+        return narr;
+    }
+
+    for (int i = idx; i < narr - 1; i++)
+    {
+        carr[i] = carr[i + 1];
+    }
+    return narr - 1;
 }
 
 /*
@@ -197,7 +235,7 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     assert(o1 != NULL);
     assert(o2 != NULL);
 
-    // TODO
+    return sqrt(pow(o1->x - o2->x, 2) + pow(o1->y - o2->y, 2));
 }
 
 /*
@@ -210,7 +248,21 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
     assert(c2 != NULL);
     assert(c2->size > 0);
 
-    // TODO
+    float min_dist = obj_distance(&(c1->obj[0]), &(c2->obj[0]));
+
+    for (int i = 0; i < c1->size; i++)
+    {
+        for (int j = 0; j < c2->size; j++)
+        {
+            float dist = obj_distance(&(c1->obj[i]), &(c2->obj[j]));
+            if (dist < min_dist)
+            {
+                min_dist = dist;
+            }
+        }
+    }
+
+    return min_dist;
 }
 
 /*
@@ -223,7 +275,22 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
 {
     assert(narr > 0);
 
-    // TODO
+    (*c1) = 0;
+    (*c2) = 0;
+    float min_dist = cluster_distance(&(carr[(*c1)]), &(carr[(*c2)]));
+
+    for (int i = 0; i < narr; i++)
+    {
+        for (int j = i; j < narr; j++)
+        {
+            if (cluster_distance(&(carr[i]), &(carr[j])) < min_dist)
+            {
+                (*c1) = i;
+                (*c2) = j;
+                min_dist = cluster_distance(&(carr[(*c1)]), &(carr[(*c2)]));
+            }
+        }
+    }
 }
 
 // pomocna funkce pro razeni shluku
@@ -274,7 +341,57 @@ int load_clusters(char *filename, struct cluster_t **arr)
 {
     assert(arr != NULL);
 
-    // projedu celý soubor, ale jenom počítám řásdky
+    FILE *in = fopen(filename, "r");
+    if (in == NULL)
+    {
+        fprintf(stderr, "Chyba pri otevirani souboru '%s'.\n", filename);
+        (*arr) = NULL;
+        return 0;
+    }
+
+    int n_obj = 0;
+    if (fscanf(in, "count=%i", &n_obj) != 1)
+    {
+        fprintf(stderr, "Soubor '%s' je prazdny.\n", filename);
+        fclose(in);
+        (*arr) = NULL;
+        return 0;
+    }
+
+    if (n_obj == 0)
+    {
+        fclose(in);
+        (*arr) = NULL;
+        return 0;
+    }
+
+    (*arr) = malloc(sizeof(struct cluster_t) * n_obj);
+
+    if ((*arr) == NULL)
+    {
+        fprintf(stderr, "Pri alokaci pameti doslo k chybe.\n");
+        fclose(in);
+        return 0;
+    }
+
+    for (int i = 0; i < n_obj; i++)
+    {
+        struct obj_t new_obj;
+        if (fscanf(in, "%i%*[ ]%f%*[ ]%f%*[ ]\n", &(new_obj.id), &(new_obj.x), &(new_obj.y)) != 3)
+        { // TODO: posefit chybne radky
+            printf("chybny radek\n");
+            fscanf(in, "%*[^\n]\n");
+            // n_obj = i;
+            n_obj -= 1;
+            i -= 1;
+            continue;
+        }
+
+        init_cluster(&((*arr)[i]), 0);
+        append_cluster(&((*arr)[i]), new_obj);
+    }
+
+    return n_obj;
 }
 
 /*
@@ -293,7 +410,12 @@ void print_clusters(struct cluster_t *carr, int narr)
 
 int main(int argc, char *argv[])
 {
+
+    if (argc > 0 && argv[0])
+    {
+    }
     struct cluster_t *clusters;
 
-    // TODO
+    int narr = load_clusters("input.txt", &clusters);
+    print_clusters(clusters, narr);
 }
