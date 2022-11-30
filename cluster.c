@@ -98,10 +98,10 @@ void init_cluster(struct cluster_t *c, int cap)
     // pokud je pozadovana kapacita nula, nastavim pole objektu na NULL a ukoncim funkci
     if (cap == 0)
     {
-        if (c->obj != NULL)
-        {
-            free(c->obj);
-        }
+        // if (c->obj != NULL)
+        // {
+        //     free(c->obj);
+        // }
         c->obj = NULL;
         return;
     }
@@ -459,6 +459,16 @@ void print_clusters(struct cluster_t *carr, int narr)
     }
 }
 
+void free_clusters(struct cluster_t *carr, int narr)
+{
+    for (int i = 0; i < narr; i++)
+    {
+        clear_cluster(&(carr[i]));
+        // free()
+    }
+    free(carr);
+}
+
 int main(int argc, char *argv[])
 {
     // testuju, jestli program odstal dostatek argumentu
@@ -501,6 +511,7 @@ int main(int argc, char *argv[])
         // kdyz je zadana hodnota bud mensi, jak nula, nebo vetsi, nez maximalni pocet shluku, vypisu chybu, usage a program ukoncim
         fprintf(stderr, "Hodnota [N]='%i' neni validni.\n", cilovy_pocet_shluku);
         fprintf(stderr, "Usage: %s SOUBOR [N]\n", argv[0]);
+        free_clusters(clusters, narr);
         return EXIT_FAILURE;
     }
 
@@ -516,12 +527,6 @@ int main(int argc, char *argv[])
     }
 
     print_clusters(clusters, narr); // tisk vysledku
-
-    for (int i = 0; i < narr; i++)
-    {
-        clear_cluster(&(clusters[i]));
-        // free()
-    }
-    free(clusters);
+    free_clusters(clusters, narr);
     return EXIT_SUCCESS; // :) kdyz vse probehlo vporadku, koncim pratricne program
 }
