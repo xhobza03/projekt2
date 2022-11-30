@@ -423,6 +423,15 @@ int load_clusters(char *filename, struct cluster_t **arr)
         }
         // Note: Funkce funguje i v pripade, ze bude objektu v souboru mene, nez je psano. Pocet objektu se bude zmensovat, dokud nebude odpovidat skutecnemu poctu objektu v souboru.
 
+        // pokud alespon jedno z X a Y neni cele cislo
+        if (new_obj.x != trunc(new_obj.x * 10.0) / 10.0 || new_obj.y != trunc(new_obj.y * 10.0) / 10.0)
+        {
+            // radek povazuju za neplatny a preskocim ho
+            n_obj -= 1;
+            i -= 1;
+            continue;
+        }
+
         init_cluster(&((*arr)[i]), 0);         // inicializace shluku pro objekt
         append_cluster(&((*arr)[i]), new_obj); // vlozeni objektu do vytvoreneho shluku v poli shluku
     }
