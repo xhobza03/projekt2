@@ -455,6 +455,13 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    if (argc > 3)
+    {
+        fprintf(stderr, "Prilis mnoho argumentu.\n");
+        fprintf(stderr, "Usage: %s SOUBOR [N]\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
     int cilovy_pocet_shluku = 1; // v zakladu je cilovy pocet shluku 1
     if (argc >= 3)
     {
