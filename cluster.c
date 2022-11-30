@@ -257,7 +257,7 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     assert(o2 != NULL);
 
     // vypocet vzdalenosti pomoci pythagorovy vety
-    return sqrt(pow(o1->x - o2->x, 2) + pow(o1->y - o2->y, 2));
+    return sqrtf(pow(o1->x - o2->x, 2) + pow(o1->y - o2->y, 2));
 }
 
 /*
