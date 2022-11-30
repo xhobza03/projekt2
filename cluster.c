@@ -399,6 +399,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
         return 0;      // vratim 0 jako pocet shluku v poli
     }
 
+    free(*arr);
     (*arr) = malloc(sizeof(struct cluster_t) * n_obj); // alokace pameti pro shluky pro objekty
 
     // pokud se alokace nepovedla, vypisu chybu a ukoncim funkci
@@ -510,5 +511,6 @@ int main(int argc, char *argv[])
     }
 
     print_clusters(clusters, narr); // tisk vysledku
-    return EXIT_SUCCESS;            // :) kdyz vse probehlo vporadku, koncim pratricne program
+    free(clusters);
+    return EXIT_SUCCESS; // :) kdyz vse probehlo vporadku, koncim pratricne program
 }

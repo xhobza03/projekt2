@@ -1,0 +1,12 @@
+{
+  "name": "2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "make"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

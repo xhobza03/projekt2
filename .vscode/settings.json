@@ -2,6 +2,7 @@
   "todo-tree.tree.showBadges": true,
   "files.associations": {
     "assert.h": "c",
-    "math.h": "c"
+    "math.h": "c",
+    "limits.h": "c"
   }
 }
