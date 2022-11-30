@@ -466,7 +466,13 @@ int main(int argc, char *argv[])
     if (argc >= 3)
     {
         // nactu cilovy pocet shluku z argumentu volani programu
-        cilovy_pocet_shluku = strtol(argv[2], NULL, 10);
+        char *endptr;
+        cilovy_pocet_shluku = strtol(argv[2], &endptr, 10);
+        if (*endptr != '\0')
+        {
+            fprintf(stderr, "Zadany argument neni ve spravnem formatu. (cele cislo)\n");
+            return EXIT_FAILURE;
+        }
     }
 
     // vytvorim si pole (ukazatel) shluku
