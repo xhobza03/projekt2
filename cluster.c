@@ -511,6 +511,7 @@ int main(int argc, char *argv[])
         find_neighbours(clusters, narr, &c1, &c2);        // najdu shluky, ktere jsou si nejbliz
         merge_clusters(&(clusters[c1]), &(clusters[c2])); // nalezene shluky sloucim
 
+        clear_cluster(&(clusters[c2]));
         narr = remove_cluster(clusters, narr, c2); // ostranim shluk, ktery jsem sloucil do jineho
     }
 
@@ -519,6 +520,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < narr; i++)
     {
         clear_cluster(&(clusters[i]));
+        // free()
     }
     free(clusters);
     return EXIT_SUCCESS; // :) kdyz vse probehlo vporadku, koncim pratricne program
