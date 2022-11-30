@@ -98,10 +98,6 @@ void init_cluster(struct cluster_t *c, int cap)
     // pokud je pozadovana kapacita nula, nastavim pole objektu na NULL a ukoncim funkci
     if (cap == 0)
     {
-        // if (c->obj != NULL)
-        // {
-        //     free(c->obj);
-        // }
         c->obj = NULL;
         return;
     }
@@ -390,6 +386,14 @@ int load_clusters(char *filename, struct cluster_t **arr)
     {
         // pokud se pocet objektu nedal precist, soubor bude nema pozadovany format, nebo je prazdny, takze ukoncim funkci
         fprintf(stderr, "Soubor '%s' je prazdny.\n", filename);
+        fclose(in);    // zavru soubor
+        (*arr) = NULL; // nastavim pole shluku na NULL
+        return 0;      // vratim 0 jako pocet shluku v poli
+    }
+
+    if (n_obj < 0)
+    {
+        fprintf(stderr, "V souboru je zadan nevalidni pocet objektu.\n");
         fclose(in);    // zavru soubor
         (*arr) = NULL; // nastavim pole shluku na NULL
         return 0;      // vratim 0 jako pocet shluku v poli
