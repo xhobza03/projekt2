@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < narr; i++)
     {
-        clear_cluster(&clusters[i]);
+        clear_cluster(&(clusters[i]));
     }
     free(clusters);
     return EXIT_SUCCESS; // :) kdyz vse probehlo vporadku, koncim pratricne program
