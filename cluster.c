@@ -98,6 +98,10 @@ void init_cluster(struct cluster_t *c, int cap)
     // pokud je pozadovana kapacita nula, nastavim pole objektu na NULL a ukoncim funkci
     if (cap == 0)
     {
+        if (c->obj != NULL)
+        {
+            free(c->obj);
+        }
         c->obj = NULL;
         return;
     }
