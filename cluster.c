@@ -274,12 +274,12 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
     // nastavim minimalni vzdalenost na prvni objekty ve shlucich
     float min_dist = obj_distance(&(c1->obj[0]), &(c2->obj[0]));
 
-    // hledam dva prvky, ktere maji mensi vzdalenost, nez ty jiz nalezene
+    // hledam dva objekty, ktere maji mensi vzdalenost, nez ty jiz nalezene
     for (int i = 0; i < c1->size; i++)
     {
         for (int j = 0; j < c2->size; j++)
         {
-            float dist = obj_distance(&(c1->obj[i]), &(c2->obj[j]));
+            float dist = obj_distance(&(c1->obj[i]), &(c2->obj[j])); // vypocet vzdalenosti dvou objektu
             if (dist < min_dist)
             {
                 min_dist = dist; // pokud jsem nasel mesi vzdalenost, ulozim si ji
@@ -493,13 +493,21 @@ void print_clusters(struct cluster_t *carr, int narr)
     }
 }
 
+/**
+ * @brief Uvolni vsechny pole shluku a pole objektu v kazdem ze shluku.
+ *
+ * @param carr pole shluku
+ * @param narr pocet shluku v poli
+ */
 void free_clusters(struct cluster_t *carr, int narr)
 {
+    // uvolneni poli objektu ve shlucich
     for (int i = 0; i < narr; i++)
     {
         clear_cluster(&(carr[i]));
-        // free()
     }
+
+    // uvolneni pole shluku
     free(carr);
 }
 
@@ -513,8 +521,10 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    // pokud je argumentu prilis mnoho
     if (argc > 3)
     {
+        // vypisu chybu, usage a ukoncim program
         fprintf(stderr, "Prilis mnoho argumentu.\n");
         fprintf(stderr, "Usage: %s SOUBOR [N]\n", argv[0]);
         return EXIT_FAILURE;
@@ -561,6 +571,6 @@ int main(int argc, char *argv[])
     }
 
     print_clusters(clusters, narr); // tisk vysledku
-    free_clusters(clusters, narr);
-    return EXIT_SUCCESS; // :) kdyz vse probehlo vporadku, koncim pratricne program
+    free_clusters(clusters, narr);  // finalni uvolneni shluku
+    return EXIT_SUCCESS;            // :) kdyz vse probehlo vporadku, koncim pratricne program
 }
