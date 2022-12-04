@@ -11,6 +11,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
 #include <math.h>   // sqrtf
 #include <limits.h> // INT_MAX
@@ -450,17 +451,24 @@ int load_clusters(char *filename, struct cluster_t **arr)
         }
 
         // hedam, jestli je objekt (jeho id) unikatni. jestli ne, radek povazuju za neplatny
+        bool jeUnikatni = true; // predpokladam, ze je unikatni
         for (int p = 0; p < i; p++)
         {
             // pro kazdy z jiz nactenych sleduju, jestli jeho id je shodne s tim, ktery prave nacitam
             if (((*arr)[p]).obj[0].id == new_obj.id)
             {
-                // radek povazuju za neplatny a preskocim ho
-                // n_obj -= 1;
-                // i -= 1;
-                // continue;
-                printf("aaaaaaaaaaaaaaaa\n");
+
+                jeUnikatni = false; // nasel jsem objekt se stejnym id, tudiz ten zapisovany unikatni neni
+                break;
             }
+        }
+        // pokud zapisovany objekt neni unikatni
+        if (!jeUnikatni)
+        {
+            // radek povazuju za neplatny a preskocim ho
+            n_obj -= 1;
+            i -= 1;
+            continue;
         }
 
         init_cluster(&((*arr)[i]), 0);         // inicializace shluku pro objekt
