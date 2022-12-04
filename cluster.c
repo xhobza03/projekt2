@@ -1,6 +1,7 @@
 /**
  * @author Tomáš Hobza, xhobza03
  * @date 26. 11. 2022
+ * @link https://github.com/xhobza03/projekt2
  */
 
 /**
