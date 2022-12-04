@@ -407,7 +407,6 @@ int load_clusters(char *filename, struct cluster_t **arr)
         return 0;      // vratim 0 jako pocet shluku v poli
     }
 
-    // free(*arr);
     (*arr) = malloc(sizeof(struct cluster_t) * n_obj); // alokace pameti pro shluky pro objekty
 
     // pokud se alokace nepovedla, vypisu chybu a ukoncim funkci
@@ -451,17 +450,18 @@ int load_clusters(char *filename, struct cluster_t **arr)
         }
 
         // hedam, jestli je objekt (jeho id) unikatni. jestli ne, radek povazuju za neplatny
-        // for (int p = 0; p < i; p++)
-        // {
-        //     // pro kazdy z jiz nactenych sleduju, jestli jeho id je shodne s tim, ktery prave nacitam
-        //     if (((*arr)[p]).obj[0].id == new_obj.id)
-        //     {
-        //         // radek povazuju za neplatny a preskocim ho
-        //         n_obj -= 1;
-        //         i -= 1;
-        //         continue;
-        //     }
-        // }
+        for (int p = 0; p < i; p++)
+        {
+            // pro kazdy z jiz nactenych sleduju, jestli jeho id je shodne s tim, ktery prave nacitam
+            if (((*arr)[p]).obj[0].id == new_obj.id)
+            {
+                // radek povazuju za neplatny a preskocim ho
+                // n_obj -= 1;
+                // i -= 1;
+                // continue;
+                printf("aaaaaaaaaaaaaaaa\n");
+            }
+        }
 
         init_cluster(&((*arr)[i]), 0);         // inicializace shluku pro objekt
         append_cluster(&((*arr)[i]), new_obj); // vlozeni objektu do vytvoreneho shluku v poli shluku
